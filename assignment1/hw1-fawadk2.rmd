@@ -1,0 +1,283 @@
+---
+title: "Stat 420 - Homework 1"
+author: "Fawad Khan"
+output: pdf_document
+header-includes:
+  - \usepackage{comment} # comment out solutions for no solution version
+params:
+  soln: TRUE 
+# TRUE for w/ solution, FALSE for w/o solution. Need to rename the knitted PDF.
+# If you want to genertae and rename both w/ and w/o sololution versions,
+# see `STAT400_gen_HW_Disc.R` to generate 2 pdfs at once.
+---
+  
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+```
+
+### Fall 2025
+
+## Exercise 1 (Subsetting and Statistics)
+
+**(a)**
+
+```{r echo=TRUE, results='hide'}
+library(ggplot2)
+msleep
+```
+```{r}
+class(msleep)
+```
+
+The msleep dataset is of object type tibble. 
+
+**(b)** 
+
+```{r}
+dim(msleep)
+```
+
+There are 83 observations and 11 variables.
+
+**(c)**
+
+```{r}
+sum(is.na(msleep))
+sum(is.na(msleep$sleep_rem))
+mean(msleep$sleep_rem, na.rm = TRUE)
+```
+The mean hours of REM sleep is: 1.87541
+
+**(d)** 
+
+```{r}
+sd(msleep$brainwt, na.rm = TRUE )
+```
+
+The standard deviation of brain weight of individuals is 0.9764137. 
+
+**(e)**
+
+```{r}
+msleep[which.max(msleep$sleep_rem), c('name', 'sleep_rem')]
+```
+The observation with the most REM sleep is the Thick-tailed opposum.
+
+**(f)**
+
+```{r}
+mean(msleep$bodywt[msleep$vore == "carni"], na.rm = TRUE)
+```
+The average bodyweight of carnivores in this dataset is 90.75111.
+
+## Exercise 2 (Plotting)
+
+**(a)** 
+
+```{r echo=TRUE, results='hide'}
+library(MASS)
+data(birthwt)
+```
+
+```{r echo=TRUE, results='hide'}
+?birthwt
+colnames(birthwt)
+```
+
+The observations in this dataset represent factors associated with low infant birth weight. This includes factors such as the mothers age, smoking status during pregnancy, history of hypertension, and more.
+
+**(b)**
+
+```{r echo=TRUE, results='hide'}
+birthwt
+class(birthwt)
+```
+
+This dataset is a dataframe object.
+
+**(c)** 
+
+```{r}
+dim(birthwt)
+```
+
+This dataset contains 189 observations and 10 variables.
+
+**(d)** 
+
+```{r}
+plot(birthwt$lwt, birthwt$bwt,
+  col = 'darkblue',
+  xlab = 'Mothers weight before pregnancy',
+  ylab = 'Birth Weight',
+  main = 'Birth weight vs Mothers weight before pregnancy'
+  
+)
+```
+Based on the scatter plot, there is a slight upwards trend and so a positive relationship between the mothers weight before pregnancy and the birth weight. The higher the mothers weight before pregnancy, the higher the birth weight, although there is some variance. 
+
+**(e)**
+
+```{r}
+plot(birthwt$age, birthwt$bwt,
+     col = 'darkgreen',
+     xlab = 'Mothers age',
+     ylab = 'Birth Weight',
+     main = 'Birth weight vs Mothers age'
+)
+```
+Based on this plot, there does not seem to be a noticeable relationship between the two variables. The points appear scattered without a clear trend in any direction. This plot suggests that the mothers age is not a strong indicator of birth weight.
+
+**(f)** 
+
+```{r}
+boxplot(birthwt$bwt ~ birthwt$smoke,
+        col = c('pink', 'yellow'),
+        xlab = 'Smoking Status (0 = Non-Smoker, 1 = Smoker)',
+        ylab = 'Birth Weight',
+        main = 'Birth weight vs Mothers smoking status'
+)
+```
+Based on this plot, we can see that the overall distribution of birth weight for smokers is shifted downwards, and the median birth weight of smokers is less than that of non-smokers. This suggests that smoking during pregnancy may lead to lower birth weight.
+
+## Exercise 3 (Importing data, more plotting)
+
+**(a)**
+
+```{r include=FALSE}
+nutrition_2018 <- read.csv("nutrition-2018.csv")
+```
+
+```{r include=FALSE}
+nutrition_2018
+```
+
+```{r}
+hist(nutrition_2018$Calories,
+     col = 'yellow',
+     xlab = 'Calories',
+     main = 'Histogram of calories'
+)
+```
+**(b)**
+
+Based on this histogram, we can see that most foods are concentrated to the left and have a lower calorie count. There are definitely some outlines towards the right with a higher calorie count, and also some bins that have no representation. An explanation could be that the higher calorie foods are those that are high in sugar or fats, or are made with a lot of oil.
+
+**(c)**
+
+```{r}
+plot(nutrition_2018$Carbs, nutrition_2018$Calories,
+     col = 'pink',
+     xlab = 'Carbohydrates',
+     ylab = 'Calories',
+     main = 'Calories vs Carbohydrates',
+     pch = 16
+)
+```
+We can see a noticeable positive trend as carbohydrates increase, so do calories. However the same can be said of the variance, foods with lower carbohydrates seem be more spread out in terms of calories while those high in carbohydrates are more closely clustered together. It's interesting how much variance there is in foods with zero carbohydrates, they can be zero calories or go all the way up to 1000 calories. We can make a rough prediction of calories based on the number of carbohydrates but there are clearly more factors in play. To make a good, accurate prediction I don't think just carbohydrates is enough information.  
+
+**(d)**
+
+```{r}
+nutrition_2018$estimatedCalories <- 4 * nutrition_2018$Protein + 
+  4 * nutrition_2018$Carbs + 9 * nutrition_2018$Fat
+```
+
+```{r}
+plot(nutrition_2018$estimatedCalories,nutrition_2018$Calories,
+     col = 'blue',
+     main = "Actual Calories vs Estimated Calories from Macronutrients",
+     xlab = "Estimated Calories (4*Protein + 4*Carbs + 9*Fat)",
+     ylab = "Actual Calories",
+     pch = 16
+)
+```
+The reason why this may not be a perfect line is because for one, we are only considering protein, carbs and fat, when there may be other factors in play such as fiber, sugar, starches, etc. Our dataset may also not be perfect, with the data being rounded or measured with some inaccuracies. 
+
+## Exercise 4 (Writing and using functions)
+
+**(a)**
+
+```{r}
+sum_of_squares <- function(x) {
+  return (sum(x^2))
+}
+```
+
+```{r}
+a <- 1:20
+sum_of_squares(a)
+```
+
+**(b)**
+
+```{r}
+x <- c(11200, 7900, 7900, 4900, 4700)
+
+x_bar <- mean(x)
+
+deviations <- x - x_bar
+
+ssd <- sum_of_squares(deviations)
+
+s2 <- ssd / (length(x) - 1)
+
+s2
+
+```
+```{r}
+var(x)
+```
+Both answers match.
+
+**(c)**
+
+```{r}
+with(nutrition_2018, {
+  residuals <- Calories - nutrition_2018$estimatedCalories
+  sum_of_squares(residuals)
+})
+```
+## Exercise 5 (More writing and using functions)
+
+```{r}
+set.seed(2025)
+ random1 = rnorm(1000)
+ random2 = runif(1000, min = 0, max = 1)
+```
+
+**(a)**
+
+```{r}
+list_extreme_values <- function(x, k = 2) {
+  xbar <- mean(x, na.rm = TRUE)
+  s <- sd(x, na.rm = TRUE)
+  
+  lower <- xbar - k * s
+  upper <- xbar + k * s
+  
+  small <- x[x < lower]
+  large <- x[x > upper]
+  
+  return(list(small = small, large = large))
+}
+```
+
+```{r}
+extreme_random1 <- list_extreme_values(random1, k = 2)
+extreme_random1$small
+extreme_random1$large
+```
+```{r}
+extreme_random2 <- list_extreme_values(random2, k = 2)
+extreme_random2$small
+extreme_random2$large
+```
+**(b)**
+
+```{r}
+mean(list_extreme_values(random1, k = 2)$large)
+
+```
+
