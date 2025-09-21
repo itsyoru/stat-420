@@ -1,0 +1,460 @@
+---
+title: "Stat 420 - Homework 2"
+author: "Fawad Khan"
+output: pdf_document
+header-includes:
+  - \usepackage{comment} 
+params:
+  soln: TRUE 
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(MASS)
+library(mlbench)
+```
+
+### Fall 2025
+
+## Exercise 1 (Using LM)
+
+**a**
+
+```{r}
+cat_model <- lm(Hwt ~ Bwt, data = cats)
+summary(cat_model)
+```
+**b**
+
+```{r}
+coef(cat_model)
+```
+
+Beta 0 hat is not very useful in the real world since this is telling us the mean heart weight when body weight is 0 kg. A cat will not weigh 0 kg in real life. Beta 1 hat is telling us that for every 1 kg increase in body weight, the estimated mean heart weight increases by 4.0340627 grams.
+
+**c**
+
+```{r}
+predict(cat_model, newdata = data.frame(Bwt = 3.1))
+```
+
+```{r}
+range(cats$Bwt)
+```
+
+The estimated heart weight of a cat that weights 3.1 kg is 12.14893 grams. We feel confidant in this prediction as it lies within the range of observed body weight from 2.0 - 3.9. This is considered interpolation.
+
+**d**
+
+```{r}
+predict(cat_model, newdata = data.frame(Bwt = 1.5))
+```
+
+The estimated heart weight of a cat that weights 1.5 kg is 5.694432 grams. We do NOT feel confidant in this prediction as it lies outside the range of observed body weight from 2.0 - 3.9. This is considered extrapolation.
+
+**e**
+
+```{r}
+plot(Hwt ~ Bwt, data = cats,
+     xlab = 'Body Weight (kg)',
+     ylab = 'Heart Weight (g)',
+     main = 'Heart weight vs Body Weight for Cats',
+     pch = 20,
+     col = 'grey')
+abline(cat_model, lwd = 4, col = 'darkorange')
+```
+**f**
+
+```{r}
+summary(cat_model)$r.squared
+```
+
+## Exercise 2 (Simulating SLR)
+
+```{r}
+birthday = 19970614
+set.seed(birthday)
+```
+
+**a**
+
+```{r}
+n <- 25
+x = runif(n = 25, 0, 10)
+sigma <- sqrt(10.24)
+
+sim_slr = function(x, beta_0 = 10, beta_1 = 5, sigma = 1) {
+  n = length(x)
+  epsilon = rnorm(n, mean = 0, sd = sigma)
+  y = beta_0 + beta_1 * x + epsilon
+  data.frame(predictor = x, response = y)
+}
+
+sim_data <- sim_slr(x = x, beta_0 = 5, beta_1 = -3, sigma = sigma)
+sim_data
+```
+
+**b**
+
+```{r}
+sim_fit = lm(response ~ predictor, data = sim_data)
+coef(sim_fit)
+```
+
+We should be expecting values close to 5 (beta 0) and -3 (beta 1), but not exactly since we are factoring in noise. Based on our 25 data points, our results are fairly close to the true parameters.
+
+**c**
+
+```{r}
+plot(sim_data$predictor, sim_data$response,
+     main = "Simulated Data with Fitted and True Lines",
+     xlab = "Simulated Predictor Variable",
+     ylab = "Simulated Response Variable",
+     cex = 2,
+     pch = 20, col = "grey")
+
+abline(sim_fit, col = "darkorange", lwd = 3)
+
+abline(a = 5, b = -3, col = "darkgreen", lwd = 3, lty = 2)
+legend("topright", c("Estimate", "Truth"), lty = c(1, 2), lwd = 3,
+       col = c("darkorange", "darkgreen"))
+
+```
+**d**
+
+```{r}
+num_samples <- 1000
+beta_0 <- 5
+beta_1 <- -3
+
+beta_hat_1 <- rep(0, num_samples)
+
+for (i in 1:num_samples) {
+  eps <- rnorm(25, mean = 0, sd = sigma)
+  y <- beta_0 + beta_1 * x + eps
+  
+  sim_model <- lm(y ~ x)
+  beta_hat_1[i] <- coef(sim_model)[2]
+}
+```
+
+**e**
+
+```{r}
+mean(beta_hat_1)
+sd(beta_hat_1)
+```
+
+The mean of beta hat 1, should be close to the true mean of -3, which it is. The standard deviation measures how much this value varies from sample to sample due to noise.
+
+**f**
+
+```{r}
+var_beta_1_hat <- var(beta_hat_1)
+
+hist(beta_hat_1, prob = TRUE, breaks = 20,
+     xlab = expression(hat(beta)[1]), 
+     main = "Histogram of Beta Hat 1",
+     col = "lightgray", border = "dodgerblue")
+
+curve(dnorm(x, mean = beta_1, sd = sqrt(var_beta_1_hat)), 
+      col = "darkorange", lwd = 3, add = TRUE)
+```
+The distribution of beta hat 1 follows a normal distribution, and is symmetrical and bell-shaped. The mean is around the true mean of -3 and the standard deviation is in line with what we found earlier.
+
+## Exercise 3 (Using LM for Inference)
+
+**a**
+
+```{r}
+cat_model <- lm(Hwt ~ Bwt, data = cats)
+summary_cat <- summary(cat_model)
+
+t_value <- summary_cat$coefficients["Bwt", "t value"]
+p_value <- summary_cat$coefficients["Bwt", "Pr(>|t|)"]
+
+t_value
+p_value
+```
+
+Null Hypothesis: Body weight (kg) has no effect in the heart weight (g) in cats.  
+
+Alternative Hypothesis: Body weight (kg) does have an effect in the heart weight (g) of cats.  
+
+Test Statistic: 16.11939  
+
+P-Value: 6.969045e-34
+
+Decision & Conclusion: At alpha = 0.05, we will make the statistical decision to reject the null hypothesis. This is because our p-value is much smaller than 0.05. There is therefore significant evidence at that level that body weight is significantly associated with heart weight in cats.  
+
+**b**
+
+```{r}
+confint(cat_model, level = 0.95)
+```
+We are 95% confidant that for every additional kg of body weight, the mean heart weight increases between 3.539343 and 4.528782 grams.
+
+**c**
+
+```{r}
+confint(cat_model, '(Intercept)', level = 0.95)
+```
+We are 95% confidant that the true heart weight of a cat with a body weight of 0 kg lies between -1.725163 and 1.011838 grams. In the real world we know the weight can never be negative.
+
+**d**
+
+```{r}
+new_data <- data.frame(Bwt = c(2.1, 2.8))
+predictions <- predict(cat_model, newdata = new_data, interval = "confidence", level = 0.95)
+predictions
+```
+Estimated mean heart weight of cat with a body weight of 2.1 is between 7.724455 and 8.505284 grams.
+
+Estimated mean heart weight of cat with a body weight of 2.8 is between 10.696491 and 11.180935 grams.
+
+The interval is larger for a prediction at 2.1 kg of body weight. This is because 2.1 is further from the true mean, whereas 2.8 is much closer to it. We would expect the confidence interval to be wider the further from the true mean, so this result is expected.
+
+**e**
+
+```{r}
+new_data_pred <- data.frame(Bwt = c(2.8, 4.2))
+predict(cat_model, newdata = new_data_pred, interval = "prediction", level = 0.95)
+```
+Estimated mean heart weight of cat with a body weight of 2.8 is between 8.057446 and 13.81998 grams.
+
+Estimated mean heart weight of cat with a body weight of 4.2 is between 13.614238 and 19.55856 grams.
+
+**f**
+
+```{r}
+bwt_grid <- seq(min(cats$Bwt), max(cats$Bwt), by = 0.01)
+
+hwt_ci_band <- predict(cat_model, 
+                       newdata = data.frame(Bwt = bwt_grid), 
+                       interval = "confidence", 
+                       level = 0.95)
+
+hwt_pi_band <- predict(cat_model, 
+                       newdata = data.frame(Bwt = bwt_grid), 
+                       interval = "prediction", 
+                       level = 0.95)
+
+plot(Hwt ~ Bwt, data = cats,
+     xlab = "Body Weight (kg)",
+     ylab = "Heart Weight (g)",
+     main = "Heart Weight vs Body Weight in Cats",
+     pch  = 20,
+     cex  = 2,
+     col  = "grey",
+     ylim = c(min(hwt_pi_band), max(hwt_pi_band)))
+
+abline(cat_model, lwd = 5, col = "darkorange")
+
+lines(bwt_grid, hwt_ci_band[, "lwr"], col = "dodgerblue", lwd = 3, lty = 2)
+lines(bwt_grid, hwt_ci_band[, "upr"], col = "dodgerblue", lwd = 3, lty = 2)
+
+lines(bwt_grid, hwt_pi_band[, "lwr"], col = "dodgerblue", lwd = 3, lty = 3)
+lines(bwt_grid, hwt_pi_band[, "upr"], col = "dodgerblue", lwd = 3, lty = 3)
+
+points(mean(cats$Bwt), mean(cats$Hwt), pch = "+", cex = 3)
+```
+
+**g**
+
+The point of the confidence interval is to show where the mean response lies for a given predictor value. Most data points fall outside the confidence bands, as they vary more than the mean.
+
+**h**
+
+```{r}
+beta_hat <- summary(cat_model)$coefficients["Bwt", "Estimate"]
+se_beta <- summary(cat_model)$coefficients["Bwt", "Std. Error"]
+beta_0 <- 3.5
+t_stat <- (beta_hat - beta_0) / se_beta
+df <- df.residual(cat_model)
+p_value <- 2 * pt(-abs(t_stat), df)
+t_stat
+p_value 
+```
+Test Statistic: 2.134019
+
+P-Value: 0.03455924
+
+Decision: At alpha = 0.05, we will reject the null hypothesis as the p-value is less than 0.05. There is evidence that the slope is significantly different from 3.5
+
+## Exercise 4 (More inference for LM)
+
+```{r}
+library(mlbench)
+data(Ozone, package = "mlbench")
+Ozone = Ozone[, c(4, 6, 7, 8)]
+colnames(Ozone) = c("ozone", "wind", "humidity", "temp")
+Ozone = Ozone[complete.cases(Ozone), ]
+```
+
+**a**
+
+```{r}
+ozone_wind_model <- lm(ozone ~ wind, data = Ozone)
+summary_ozone <- summary(ozone_wind_model)
+t_value <- summary_ozone$coefficients["wind", "t value"]
+p_value <- summary_ozone$coefficients["wind", "Pr(>|t|)"]
+t_value
+p_value
+```
+
+Null Hypothesis: Wind speed has no effect on ozone.
+
+Alternative Hypothesis: Wind speed does have an effect on ozone.
+
+Test Statistic: -0.2189811
+
+P-Value: 0.8267954
+
+Decision & Conclusion: Since the p-value is greater than alpha = 0.01, we fail to reject the null hypothesis. There is insufficient evidence at alpha = 0.01 to conclude that wind speed has an effect on ozone.
+
+**b**
+
+```{r}
+ozone_temp_model <- lm(ozone ~ temp, data = Ozone)
+summary_temp_model <- summary(ozone_temp_model)
+t_value <- summary_temp_model$coefficients["temp", "t value"]
+p_value <- summary_temp_model$coefficients["temp", "Pr(>|t|)"]
+t_value
+p_value
+```
+Null Hypothesis: Temperature has no effect on ozone.
+
+Alternative Hypothesis: Temperature does have an effect on ozone.
+
+Test Statistic: 22.84896
+
+P-Value: 8.153764e-71
+
+Decision & Conclusion: Since the p-value is smaller than alpha = 0.01, we will reject the null hypothesis. There is significant evidence at alpha = 0.01 that temperature does have an effect on ozone.
+
+## Exercise 5 (Simulating Confidence Intervals)
+
+**a**
+
+```{r}
+birthday <- 19970614
+set.seed(birthday)
+
+n <- 25
+x <- seq(0, 2.5, length = n)
+
+beta_0 <- 5
+beta_1 <- 2
+sigma <- 3
+num_samples <- 2500
+
+beta_hat_1 <- numeric(num_samples)
+se <- numeric(num_samples)
+
+for (i in 1:num_samples) {
+  eps <- rnorm(n, mean = 0, sd = sigma)
+  y <- beta_0 + beta_1 * x + eps
+  
+  sim_model <- lm(y ~ x)
+  
+  beta_hat_1[i] <- coef(sim_model)[2]
+  se[i] <- summary(sim_model)$coefficients["x", "Std. Error"]
+}
+```
+
+**b**
+
+```{r}
+df <- n - 2
+t_crit <- qt(0.975, df)
+lower_95 <- beta_hat_1 - t_crit * se
+upper_95 <- beta_hat_1 + t_crit * se
+```
+
+**c**
+
+```{r}
+contains_true <- (lower_95 <= beta_1) & (upper_95 >= beta_1)
+coverage <- mean(contains_true)
+coverage
+```
+
+**d**
+
+```{r}
+reject_null <- (lower_95 > 0) | (upper_95 < 0)
+rejection_rate <- mean(reject_null)
+rejection_rate
+```
+
+**e**
+
+```{r}
+t_crit_99 <- qt(0.995, df)
+lower_99 <- beta_hat_1 - t_crit_99 * se
+upper_99 <- beta_hat_1 + t_crit_99 * se
+```
+
+**f**
+
+```{r}
+contains_true_99 <- (lower_99 <= beta_1) & (upper_99 >= beta_1)
+coverage_99 <- mean(contains_true_99)
+coverage_99
+```
+
+**g**
+
+```{r}
+reject_null_99 <- (lower_99 > 0) | (upper_99 < 0)
+rejection_rate_99 <- mean(reject_null_99)
+rejection_rate_99
+```
+
+## Exercise 6 (Recreating LM() )
+
+**a**
+
+```{r}
+my_lm1 <- function(x, y) {
+  x_bar <- mean(x)
+  y_bar <- mean(y)
+  
+  SXX <- sum((x - x_bar)^2)
+  SXY <- sum((x - x_bar) * (y - y_bar))
+  
+  b1 <- SXY / SXX
+  b0 <- y_bar - b1 * x_bar
+  
+  coefficients <- c(b0, b1)
+  names(coefficients) <- c("(Intercept)", "x")
+  return(coefficients)
+}
+
+set.seed(2025)
+x <- 1:10
+y <- 2 + 3 * x + rnorm(10, 0, 1)
+
+my_lm1(x, y)
+```
+
+**b**
+
+```{r}
+my_lm2 <- function(x, y) {
+  X <- cbind(1, x)
+  
+  beta <- solve(t(X) %*% X) %*% t(X) %*% y
+  
+  coefficients <- as.vector(beta)
+  names(coefficients) <- c("(Intercept)", "x")
+  
+  return(coefficients)
+}
+
+my_lm2(x, y)
+```
+
+Both answers are the same.
+
+
