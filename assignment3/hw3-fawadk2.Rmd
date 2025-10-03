@@ -1,0 +1,484 @@
+---
+title: "Stat 420 - Homework 3"
+author: "Fawad Khan"
+output: pdf_document
+header-includes:
+  - \usepackage{comment} 
+params:
+  soln: TRUE 
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(mlbench)
+```
+
+```{r}
+nutrition <- read.csv("nutrition-2018.csv")
+```
+
+### Fall 2025
+
+## Exercise 1 (using LM)
+
+**a**
+
+```{r}
+model <- lm(Calories ~ Fat + Sugar + Sodium, data = nutrition)
+model_summary <- summary(model)
+```
+
+```{r include=FALSE}
+model_summary
+```
+
+```{r}
+f_stat <- model_summary$fstatistic[1]
+df1 <- model_summary$fstatistic[2]
+df2 <- model_summary$fstatistic[3]
+p_value <- pf(f_stat, df1, df2, lower.tail = FALSE)
+```
+
+```{r}
+f_stat
+p_value
+```
+Null Hypothesis: Fat, sugar, and sodium have no effect on calories.
+
+Alternative Hypothesis: Fat, sugar, and sodium do have an effect on calories.
+
+Test Statistic: 6590.94 
+
+P-Value: < 2.2e-16
+
+Decision and Conclusion: Since the p-value is extremely low, at alpha = 0.01 we will reject the 
+null hypothesis. There is significant evidence that fat, sugar and sodium are related to calories.
+
+**b**
+
+```{r}
+coef_estimates <- coef(model)
+coef_estimates
+```
+
+Beta Hat 0: When fat, sugar, and sodium are all zero, the model predicts about ~ 100.004 calories for a food item.
+
+Beta hat 1: For every addition gram of fat, assuming sugar and sodium are kept constant, calories in a food item is expected to increase by ~ 8.483 calories.
+
+Beta hat 2: For every addition gram of sugar, assuming fat and sodium are kept constant, calories in a food item is expected to increase by ~ 3.900 calories.
+
+Beta Hat 3: For every addition milligram of sodium, assuming fat and sugar are kept constant, calories in a food item is expected to increase by ~ -.006165 calories. We know calories cannot be negative so this is less useful.
+
+**c**
+
+```{r}
+fish_fillet <- data.frame(Fat = 18, Sugar = 5, Sodium = 580)
+
+predicted_calories <- predict(model, newdata = fish_fillet)
+predicted_calories
+```
+
+**d**
+
+```{r}
+sy <- sd(nutrition$Calories)
+sy
+se <- summary(model)$sigma
+se
+```
+The standard deviation of calories is 168.05. This means that across all foods in the data-set,
+calories vary by about 168.05 from the mean.
+
+The residual standard error is 80.8543. This means that after accounting for fat, sugar and sodium, the models predictions are off by about 80.8543 calories.
+
+**e**
+
+```{r}
+r_squared <- summary(model)$r.squared
+r_squared
+```
+
+Approximately 76.862% of the variation in calories can be explained by the amount of fat, sugar,
+and sodium in the food.
+
+**f**
+
+```{r}
+confint(model, "Sugar", level = 0.90)
+```
+We are 90% confidant for that each additional gram of sugar in food, the amount of calories
+increases by between 3.783051 and 4.017983, assuming fat and sodium are constant.
+
+**g**
+
+```{r}
+confint(model, "(Intercept)", level = 0.95)
+```
+
+We are 95% confidant that the expected amount of calories for a food item containing zero fat, 
+zero sugar and zero sodium, is between 97.69443 and 103.2177 calories.
+
+**h**
+
+```{r}
+fries <- data.frame(Fat = 15, Sugar = 0, Sodium = 260)
+
+pred_conf_int <- predict(model, newdata = fries, interval = "confidence", level = 0.99)
+pred_conf_int
+```
+For a medium order of McDonald's french fries containing 15 grams of fat, 0 grams of sugar, and 
+260 milligrams of sodium, we are 99% confidant that the mean calorie count lies between 226.1657 and 232.451 calories.
+
+**i**
+
+```{r}
+taco <- data.frame(Fat = 11, Sugar = 2, Sodium = 340)
+
+pred_pred_int <- predict(model, newdata = taco, interval = "prediction", level = 0.99)
+pred_pred_int
+```
+For a crunchy taco supreme containing 11 grams of fat, 2 grams of sugar, and 
+340 milligrams of sodium, we are 99% confidant that the calories for a single crunchy taco supreme lies between -4.684481 and  412.0234 calories. We know that in reality calories cannot be negative so we can consider the range starting from zero calories.
+
+## Exercise 2 (More LM for Multiple Regression)
+
+```{r}
+goalies <- read.csv("goalies17.csv")
+```
+
+```{r}
+goalies_clean <- subset(goalies, select = -c(Player, GS, L, TOL, SV_PCT, GAA))
+```
+
+```{r}
+model1 <- lm(W ~ GA + SV, data = goalies_clean)
+
+model2 <- lm(W ~ GA + SV + SA + MIN + SO, data = goalies_clean)
+
+model3 <- lm(W ~ ., data = goalies_clean)
+
+```
+
+**a**
+
+```{r}
+anova(model1, model2)
+```
+Null Hypothesis: The additional variables in model 2: shots against, minutes and shutouts, do not significantly improve the model.
+
+Test Statistic: 496.38
+
+P-Value: 2.2e-16 
+
+Decision and Conclusion: The p-value is very small, therefore at alpha = 0.05 we will reject the null hypothesis. This means that the additional variables in model 2 do have an effect on the model.
+
+Preferred Model: Based on our results, we prefer model 2.
+
+**b**
+
+```{r}
+anova(model2, model3)
+```
+Null Hypothesis: The additional variables in model 3: First, Last, Active, GP and PIM, do not significantly improve the model.
+
+Test Statistic: 12.283
+
+P-Value: 3.073e-11 
+
+Decision and Conclusion: The p-value is very small, therefore at alpha = 0.05 we will reject the null hypothesis. This means that the additional variables in model 3 do have an effect on the model.
+
+Preferred Model: Based on our results, we prefer model 3.
+
+**c**
+
+```{r}
+coef_summary <- summary(model3)$coefficients
+t_value <- coef_summary["SV", "t value"]
+p_value <- coef_summary["SV", "Pr(>|t|)"]
+t_value
+p_value
+```
+Test Statistic: -4.077014
+
+P-Value: 5.319041e-05
+
+Decision and Conclusion: The p-value is very small, therefore at alpha = 0.05 we will reject the null hypothesis. We can conclude that saves do have a significant effect on wins.
+
+## Exercise 3 (Regression without LM)
+
+```{r}
+data(Ozone, package = "mlbench")
+Ozone = Ozone[, c(4, 6, 7, 8)]
+colnames(Ozone) = c("ozone", "wind", "humidity", "temp")
+Ozone = Ozone[complete.cases(Ozone), ]
+```
+
+**a**
+
+```{r}
+y <- Ozone$ozone
+
+X <- as.matrix(cbind(Intercept = 1, Ozone[, c("wind", "humidity", "temp")]))
+
+beta_hat <- solve(t(X) %*% X) %*% t(X) %*% y
+
+beta_hat_no_lm <- as.vector(beta_hat)
+
+sum_beta_squared <- sum(beta_hat_no_lm^2)
+
+beta_hat_no_lm
+sum_beta_squared
+```
+
+**b**
+
+```{r}
+model_lm <- lm(ozone ~ wind + humidity + temp, data = Ozone)
+
+beta_hat_lm <- as.vector(coef(model_lm))
+
+sum_beta_hat_lm_sq <- sum(beta_hat_lm^2)
+
+beta_hat_lm
+sum_beta_hat_lm_sq
+```
+
+**c**
+
+```{r}
+all.equal(beta_hat_no_lm, unname(beta_hat_lm))
+```
+
+**d**
+
+```{r}
+n <- nrow(X)
+p <- ncol(X)
+
+y_hat <- X %*% beta_hat_no_lm
+residuals <- y - y_hat
+
+RSS <- sum(residuals^2)
+
+sigma_squared <- RSS / (n - p)
+
+var_beta_hat <- sigma_squared * solve(t(X) %*% X)
+
+std_errors_no_lm <- sqrt(diag(var_beta_hat))
+
+std_errors_no_lm
+```
+```{r}
+model_lm <- lm(ozone ~ wind + humidity + temp, data = Ozone)
+
+std_errors_lm <- summary(model_lm)$coefficients[, "Std. Error"]
+
+all.equal(unname(std_errors_no_lm), unname(std_errors_lm))
+```
+
+**e**
+
+```{r}
+y_mean <- mean(y)
+SS_tot <- sum((y - y_mean)^2)
+
+SS_res <- sum((y - (X %*% beta_hat_no_lm))^2)
+
+R_squared_no_lm <- 1 - (SS_res / SS_tot)
+
+R_squared_no_lm
+```
+```{r}
+model_lm <- lm(ozone ~ wind + humidity + temp, data = Ozone)
+
+R_squared_lm <- summary(model_lm)$r.squared
+
+all.equal(R_squared_no_lm, R_squared_lm)
+```
+
+## Exercise 4 (F Test for nested models vs single t-test)
+
+**a**
+
+```{r}
+summary_model <- summary(model)
+
+coeff_table <- summary_model$coefficients
+
+t_value_sodium <- coeff_table["Sodium", "t value"]
+p_value_sodium <- coeff_table["Sodium", "Pr(>|t|)"]
+
+t_value_sodium
+p_value_sodium
+```
+
+**b**
+
+```{r}
+reduced_model <- lm(Calories ~ Fat + Sugar, data = nutrition)
+anova_result <- anova(reduced_model, model)
+```
+
+```{r}
+F_value <- anova_result$F[2]         
+df1 <- anova_result$Df[2]            
+df2 <- anova_result$Res.Df[2]         
+p_value <- anova_result$`Pr(>F)`[2]
+F_value
+df1
+df2
+p_value
+```
+Test Statistic: 35.79929
+
+Distribution of the test statistic: Between 1 numerator degrees of freedom and 5952 denominator degrees of freedom.
+
+P-Value: 2.314599e-09
+
+**c**
+
+```{r}
+model_reduced <- lm(W ~ GA + SV + SA + MIN, data = goalies_clean)
+model_full <- lm(W ~ GA + SV + SA + MIN + SO, data = goalies_clean)
+
+anova_result <- anova(model_reduced, model_full)
+anova_result
+```
+```{r}
+F_value <- anova_result$F[2]
+p_value_F <- anova_result$`Pr(>F)`[2]
+F_value
+p_value_F
+```
+
+```{r}
+summary_full <- summary(model_full)
+t_value <- summary_full$coefficients["SO", "t value"]
+p_value_t <- summary_full$coefficients["SO", "Pr(>|t|)"]
+t_value
+p_value_t
+```
+
+```{r}
+all.equal(F_value, t_value^2)
+all.equal(p_value_F, p_value_t)
+```
+
+## Exercise 5 (Simulating Multiple Regression)
+
+**a**
+
+```{r}
+set.seed(400)
+sample_size = 40
+```
+
+```{r}
+x0 <- rep(1, sample_size)                         
+x1 <- rnorm(sample_size, mean = 0, sd = 2)         
+x2 <- runif(sample_size, min = 0, max = 4)         
+x3 <- rnorm(sample_size, mean = 0, sd = 1)        
+x4 <- runif(sample_size, min = -2, max = 2)        
+x5 <- rnorm(sample_size, mean = 0, sd = 2)        
+
+X <- cbind(x0, x1, x2, x3, x4, x5)
+C <- solve(t(X) %*% X)
+
+y <- rep(0, sample_size)
+
+sim_data <- data.frame(y = y, x1 = x1, x2 = x2, x3 = x3, x4 = x4, x5 = x5)
+```
+
+```{r}
+sum_diag_C <- sum(diag(C))
+sum_diag_C
+
+sim_data[5, ]
+```
+**b**
+
+```{r}
+beta_hat_1 <- numeric(2500)      
+beta_3_pval <- numeric(2500)     
+beta_5_pval <- numeric(2500)    
+```
+
+**c**
+
+```{r}
+beta_0 <- 2
+beta_1 <- -0.75
+beta_2 <- 1.6
+beta_3 <- 0
+beta_4 <- 0
+beta_5 <- 2
+sigma <- 5
+
+for (i in 1:2500) {
+  epsilon <- rnorm(sample_size, mean = 0, sd = sigma)
+  y_new <- beta_0 +
+           beta_1 * sim_data$x1 +
+           beta_2 * sim_data$x2 +
+           beta_3 * sim_data$x3 +
+           beta_4 * sim_data$x4 +
+           beta_5 * sim_data$x5 +
+           epsilon
+  
+  sim_data$y <- y_new
+
+  model <- lm(y ~ x1 + x2 + x3 + x4 + x5, data = sim_data)
+
+  beta_hat_1[i] <- coef(model)["x1"]
+  beta_3_pval[i] <- summary(model)$coefficients["x3", "Pr(>|t|)"]
+  beta_5_pval[i] <- summary(model)$coefficients["x5", "Pr(>|t|)"]
+}
+
+```
+
+**d**
+
+```{r}
+mean_beta1 <- -0.75
+var_beta1 <- 25 * C[2, 2]
+sd_beta1 <- sqrt(var_beta1)
+var_beta1
+sd_beta1
+```
+
+Beta 1 hat is normally distributed with a mean of -0.75, a variation of 0.2230073 and a standard deviation of 0.4722365.
+
+**e**
+
+```{r}
+mean_beta_hat_1 <- mean(beta_hat_1)
+var_beta_hat_1 <- var(beta_hat_1)
+mean_beta1
+var_beta_hat_1
+```
+```{r}
+hist(beta_hat_1, prob = TRUE, breaks = 20,
+     xlab = expression(hat(beta)[1]), 
+     main = "", 
+     border = "dodgerblue")
+
+curve(dnorm(x, mean = beta_1, sd = sqrt(sigma^2 * C[2, 2])),
+      col = "darkorange", add = TRUE, lwd = 3)
+
+```
+The curve does seem to match the histogram, showing a bell-shaped distribution with the center being at the true mean of -0.75. The mean and variance is also as expected.
+
+**f**
+
+```{r}
+prop_less_0.10 <- mean(beta_3_pval < 0.10)
+prop_less_0.10
+```
+The proportion of p-values less than 0.10 is 0.1012. We are expecting the p-values to be uniformly distributed with about 10% falling underneath 0.10. This result is expected.
+
+**g**
+
+```{r}
+prop_less_0.01 <- mean(beta_5_pval < 0.01)
+prop_less_0.01
+```
+The proportion of p-values less than 0.01 is 0.8564. We are expecting a high proportion of small p-values which indicates strong evidence against the null hypothesis. This result is expected.
